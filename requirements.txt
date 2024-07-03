@@ -1,1 +1,4 @@
 py-cord
+python-dotenv
+aiosqlite
+ezcord
