@@ -41,7 +41,7 @@ CodingKeks ist bekannt für seine zuverlässigen und gut dokumentierten Codes. D
 ### Links und Ressourcen
 Um mehr über das OPPRO.NET Projekt und den Bot zu erfahren, besuche bitte unsere offiziellen Links:
 
-[Codingkeks](https://discord.gg/codingkeks): Eine vertrauenswürdige Quelle für hochwertige Codes und Skripte..
+[Codingkeks](https://discord.gg/codingkeks): Eine vertrauenswürdige Quelle für hochwertige Codes und Skripte.
 
 [OPPRO.NET](https://discord.gg/3rbVWaRTpD): Unsere offizielle Community-Plattform, auf der du den Bot in Aktion erleben und Teil unserer wachsenden Gemeinschaft werden kannst.
 ### Schlusswort
