@@ -20,7 +20,7 @@ class Status(commands.Cog):
         if typ == "game":
             act = discord.Game(name=name)
         elif typ == "stream":
-            act = discord.Streaming(name=name, url="https://www.twitch.tv/lennypegauofficial")
+            act = discord.Streaming(name=name, url="https://www.twitch.tv/dein-kanal")
         elif typ == "custom":
             act = discord.Activity(type=discord.ActivityType.custom, name=name)
         elif typ == "listening":
