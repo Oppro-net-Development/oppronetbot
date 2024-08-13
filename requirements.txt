@@ -1,4 +1,7 @@
 py-cord
-python-dotenv
-aiosqlite
 ezcord
+PyNaCl
+PyYAML
+aiocache
+aiohttp
+aiosqlite
