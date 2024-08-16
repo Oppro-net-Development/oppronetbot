@@ -1,6 +1,6 @@
 # OPPRO.NET Bot
 ### Einführung
-Willkommen zum OPPRO.NET Bot! Dieser Bot ist ein aufregendes Projekt des Netzwerks OPPRO.NET. Unser Ziel ist es, die Benutzererfahrung durch kontinuierliche Verbesserungen und Updates zu bereichern. Updates für den Bot werden immer zuerst verfügbar sein, sodass Benutzer stets die neuesten Funktionen und Optimierungen genießen können.
+Willkommen zum OPPRO.NET Bot! Dieser Bot ist ein aufregendes Projekt des Netzwerks OPPRO.NET. Unser Ziel ist es, die Benutzererfahrung durch kontinuierliche Verbesserungen und Updates zu bereichern. Updates für den Bot werden immer zuerst verfügbar sein für den Server, sodass Benutzer stets die neuesten Funktionen und Optimierungen genießen können.
 
 ### Entwicklung und Ursprung
 Der OPPRO.NET Bot wurde von LennyPegauOfficial entwickelt. Die Entwicklung des Bots basiert auf einer Kombination aus selbst geschriebenem Code und übernommenen Codefragmenten. Einige der übernommenen Codes stammen aus vertrauenswürdigen Quellen wie CodingKeks. Diese Mischung aus eigener Entwicklung und bewährten Lösungen sorgt für einen stabilen und funktionsreichen Bot.
