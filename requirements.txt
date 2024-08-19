@@ -1,7 +1,5 @@
-py-cord
-ezcord
-PyNaCl
-PyYAML
-aiocache
-aiohttp
-aiosqlite
+python-dotenv>=1.0.1
+aiosqlite>=0.20.0
+colorama>=0.4.6
+py-cord>=2.4.0
+ezcord>=0.6.5

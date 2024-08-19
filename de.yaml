@@ -1,54 +1,56 @@
 de:
-  news:
-    name: neuigkeiten
+  # Uncategorized
+  announce:
+    name: announce
     options:
       title:
-        description: Hier die Überschreibt
+        description: Überschrift
 
-# Warnungs Commands:
-  warn:
+  # Warn
+  add_warning:
     name: verwarnen
     description:
     options:
       member:
         name: nutzer
-        description: wähle den nutzer aus
+        description: Wähle einen Nutzer aus
       reason:
         name: Grund
-        description: such dir ein Grund aus
+        description: Gebe einen Grund an
 
-  unwarn:
-    name: warnung aufheben
+  remove_warning:
+    name: warnung-aufheben
     options:
       member:
         name: nutzer
-        description: wähle den nutzer aus
+        description: Wähle den Nutzer aus
       reason:
         name: Grund
         description:
 
   warnings:
-    name: warnungs
-    description: Zeige alle Warnungen eines Users vom Server an
+    name: warnungen
+    description: Zeige alle Warnungen eines Nutzers des Servers an
     options:
       member:
         name: nutzer
 
+  # Other moderation
   purge:
     name: löschen
-    description: Lösche Nachrichten aus dem Kanal
+    description: Lösche Nachrichten aus dem angegebenen Kanal
     options:
       amount:
         name: anzahl
-# Timeouts commands
+
+  # Timeouts
   timeout:
     name: auszeit
-    description: auszeite einen Nutzer
+    description: Sperre einen Nutzer für den Server temporär
     options:
       member:
         name: nutzer
 
-  removetimeout:
-    name: entfernt_auszeit
-    description: Entferne eine Auszeit
-
+  remove_timeout:
+    name: entferne-auszeit
+    description: Entferne die Auszeit eines Nutzters

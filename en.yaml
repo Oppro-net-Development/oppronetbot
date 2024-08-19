@@ -1,54 +1,56 @@
 en:
-  news:
-    name: news
+  # Uncategorized
+  announce:
+    name: announce
     options:
-    title:
-    description: Here the overrides
+      title:
+        description: Überschrift
 
-# Warning commands:
-  warn:
+  # Warn
+  add_warning:
     name: warn
     description:
     options:
       member:
         name: user
-        description: select the user
-      reason:
-        name: reason
-      description: choose a reason
-
-  unwarn:
-    name: remove warning
-    options:
-      member:
-        name: user
-        description: select the user
+        description: Select a user
       reason:
         name: reason
         description: choose a reason
 
+  remove_warning:
+    name: remove-warning
+    options:
+      member:
+        name: user
+        description: Select the user
+      reason:
+        name: reason
+        description: Choose a reason
 
   warnings:
     name: warnings
-    description: Show all warnings of a user from the server
+    description: Show all warnings of a user from this server
     options:
       member:
       name: user
 
+  # Other moderation
   purge:
     name: delete
-    description: Delete messages from the channel
+    description: Delete messages from a channel
     options:
       amount:
       name: number
-# Timeouts commands
+
+  # Timeouts
   timeout:
     name: timeout
-    description: timeout a user
+    description: Timeout a user
     options:
       member:
       name: user
 
-  removetimeout:
-    name: remove_timeout
+  remove_timeout:
+    name: remove-timeout
     description: Remove a timeout
