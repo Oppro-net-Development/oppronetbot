@@ -1,362 +1,382 @@
+# #################################################################################################################### #
+# Creator:
+# Last updated: 28.12.2024 (12/28/2024)
+# Info: This is an admin system
+# This message must not be deleted!
+# #################################################################################################################### #
+
 import discord
-from discord import Embed, Color
-from discord.commands import slash_command, Option
 from discord.ext import commands
-from discord.commands import SlashCommandGroup
-
-import aiosqlite
-import datetime
-
-import traceback
+from discord.commands import slash_command, SlashCommandGroup
+import json
 
 
-class ModerationSystem(commands.Cog):
+
+class AdminSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.warns_file = "warns.json"
 
-    admin = SlashCommandGroup("admin")
-    warn_group = admin.create_subgroup("warn_system")
-    ban_group = admin.create_subgroup("ban_system")
+    moderation = SlashCommandGroup("moderation", "Verwaltungsbefehle")
+    # Helper: Lade Warnungen aus der Datei
+    def load_warns(self, guild_id):
+        try:
+            with open(self.warns_file, "r") as f:
+                data = json.load(f)
+                return data.get(str(guild_id), {})
+        except FileNotFoundError:
+            return {}
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        async with aiosqlite.connect("mod_sys.db") as db:
-            await db.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS WarnList (
-                warn_id INTEGER PRIMARY KEY,
-                mod_id INTEGER,
-                guild_id INTEGER,
-                user_id INTEGER,
-                warns INTEGER DEFAULT 0,
-                warn_reason TEXT,
-                warn_time TEXT
+    # Helper: Speichern der Warnungen
+    def save_warns(self, guild_id, warns):
+        try:
+            with open(self.warns_file, "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+
+        data[str(guild_id)] = warns
+
+        with open(self.warns_file, "w") as f:
+            json.dump(data, f, indent=4)
+
+    # Ban Befehl
+    @moderation.command(description="Bannt einen Benutzer.")
+    @discord.default_permissions(ban_members=True)
+    async def ban(self, ctx, user: discord.Member, reason: str = "Kein Grund angegeben"):
+        """Bannt einen Benutzer vom Server."""
+        if not ctx.author.guild_permissions.ban_members:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        await user.ban(reason=reason)
+
+        embed = discord.Embed(
+            title="🔨 Benutzer gebannt",
+            description=f"{user.mention} wurde aus dem Server gebannt. Grund: {reason}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+        try:
+            dm_embed = discord.Embed(
+                title="🔨 Du wurdest gebannt",
+                description=f"Du wurdest von {ctx.author.mention} gebannt. Grund: {reason}",
+                color=discord.Color.red()
+            )
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
+
+    # Kick Befehl
+    @moderation.command(description="Kickt einen Benutzer aus dem Server.")
+    @discord.default_permissions(kick_members=True)
+    async def kick(self, ctx, user: discord.Member, reason: str = "Kein Grund angegeben"):
+        """Kickt einen Benutzer vom Server."""
+        if not ctx.author.guild_permissions.kick_members:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        await user.kick(reason=reason)
+
+        embed = discord.Embed(
+            title="👢 Benutzer gekickt",
+            description=f"{user.mention} wurde aus dem Server gekickt. Grund: {reason}",
+            color=discord.Color.orange()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+        try:
+            dm_embed = discord.Embed(
+                title="👢 Du wurdest gekickt",
+                description=f"Du wurdest von {ctx.author.mention} gekickt. Grund: {reason}",
+                color=discord.Color.orange()
+            )
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
+
+    # Warn Befehl
+    @moderation.command(description="Warnt einen Benutzer.")
+    @discord.default_permissions(manage_messages=True)
+    async def warn(self, ctx, user: discord.Member, reason: str = "Kein Grund angegeben"):
+        """Warnt einen Benutzer."""
+        if not ctx.author.guild_permissions.manage_messages:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        warns = self.load_warns(ctx.guild.id)
+        user_id = str(user.id)
+
+        if user_id not in warns:
+            warns[user_id] = []
+        warns[user_id].append(reason)
+
+        self.save_warns(ctx.guild.id, warns)
+
+        embed = discord.Embed(
+            title="⚠️ Benutzer gewarnt",
+            description=f"{user.mention} wurde gewarnt. Grund: {reason}",
+            color=discord.Color.yellow()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+        try:
+            dm_embed = discord.Embed(
+                title="⚠️ Du wurdest gewarnt",
+                description=f"Du wurdest von {ctx.author.mention} gewarnt. Grund: {reason}",
+                color=discord.Color.yellow()
+            )
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
+
+    # Warn-List Befehl
+    @moderation.command(description="Zeigt eine Liste der Warnungen eines Benutzers.")
+    @discord.default_permissions(manage_messages=True)
+    async def warn_list(self, ctx, user: discord.Member):
+        """Zeigt die Liste der Warnungen eines Benutzers an."""
+        warns = self.load_warns(ctx.guild.id)
+        user_id = str(user.id)
+        if user_id not in warns or len(warns[user_id]) == 0:
+            embed = discord.Embed(
+                title="⚠️ Warnungen",
+                description=f"{user.mention} hat keine Warnungen.",
+                color=discord.Color.green()
+            )
+            embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+            return await ctx.respond(embed=embed)
+
+        warn_list = "\n".join(warns[user_id])
+        embed = discord.Embed(
+            title="⚠️ Warnungen",
+            description=f"{user.mention} hat folgende Warnungen:\n{warn_list}",
+            color=discord.Color.yellow()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Unwarn Befehl
+    @moderation.command(description="Entfernt eine Warnung von einem Benutzer.")
+    @discord.default_permissions(manage_messages=True)
+    async def unwarn(self, ctx, user: discord.Member, index: int):
+        """Entfernt eine Warnung von einem Benutzer."""
+        warns = self.load_warns(ctx.guild.id)
+        user_id = str(user.id)
+        if user_id in warns and len(warns[user_id]) > index:
+            del warns[user_id][index]
+            self.save_warns(ctx.guild.id, warns)
+
+            embed = discord.Embed(
+                title="⚠️ Warnung entfernt",
+                description=f"Die Warnung von {user.mention} wurde entfernt.",
+                color=discord.Color.green()
+            )
+            embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+            await ctx.respond(embed=embed)
+
+            try:
+                dm_embed = discord.Embed(
+                    title="⚠️ Deine Warnung wurde entfernt",
+                    description=f"Eine deiner Warnungen wurde von {ctx.author.mention} entfernt.",
+                    color=discord.Color.green()
                 )
-                """
-            )
-
-    @admin.command(description="Kicke einen User aus dem Server")
-    @discord.default_permissions(kick_members=True)
-    @discord.guild_only()
-    async def kick(
-            self,
-            ctx,
-            member: Option(discord.Member, "Wähle den User aus, den du kicken willst", required=True),
-            reason: Option(str, "Gib einen Grund an, warum du den User kicken willst", required=False,
-                           default="Kein Grund angegeben")
-    ):
-
-        kick_embed = discord.Embed(
-            title=f"`✅` Kick {member.name}#{member.discriminator}",
-            description=f"Du hast den User {member.mention} aus dem Server **{ctx.guild.name}** gekickt.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        kick_embed.add_field(name="Moderator:", value=f"{ctx.author}", inline=False)
-        kick_embed.add_field(name="Grund:", value=f"{reason}", inline=False)
-        kick_embed.set_author(name=f"{ctx.guild.name}", icon_url=member.avatar.url)
-        kick_embed.set_thumbnail(url=member.avatar.url)
-        kick_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                              icon_url=ctx.bot.user.avatar.url)
-
-        try:
-            await member.kick(reason=reason)
-        except (discord.Forbidden, discord.HTTPException) as e:
-
-            error_embed = discord.Embed(
-                title="`⚠️` Error",
-                description=f"Es ist ein Fehler aufgetreten.",
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
-            )
-            error_embed.add_field(name=f"Beim Kicken von {member.mention} ist ein Fehler aufgetreten.",
-                                  value=f"Bitte versuche es später erneut.", inline=False)
-            error_embed.add_field(name=f"Fehler Code:", value=f"```{e}```", inline=False)
-            error_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.bot.user.avatar.url)
-            error_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                                   icon_url=ctx.bot.user.avatar.url)
-
-            print(e)
-            await ctx.respond(embed=error_embed, ephemeral=True)
-            return
-        await ctx.respond(embed=kick_embed, ephemeral=False)
-
-    @ban_group.command(description="Banne einen User aus dem Server")
-    @discord.default_permissions(ban_members=True)
-    @discord.guild_only()
-    async def ban(
-            self,
-            ctx,
-            member: Option(discord.Member, "Wähle den User aus, den du Bannen willst", required=True),
-            reason: Option(str, "Gib einen Grund an, warum du den User Bannen willst", required=False,
-                           default="Kein Grund angegeben")
-    ):
-
-        ban_embed = discord.Embed(
-            title=f"`✅` Ban {member.name}#{member.discriminator}",
-            description=f"Du hast den User {member.mention} aus dem Server **{ctx.guild.name}** gebannt.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        ban_embed.add_field(name="Moderator:", value=f"{ctx.author}", inline=False)
-        ban_embed.add_field(name="Grund:", value=f"{reason}", inline=False)
-        ban_embed.set_author(name=f"{ctx.guild.name}", icon_url=member.avatar.url)
-        ban_embed.set_thumbnail(url=member.avatar.url)
-        ban_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development", icon_url=ctx.bot.user.avatar.url)
-
-        try:
-            await member.ban(reason=reason)
-        except (discord.Forbidden, discord.HTTPException) as e:
-
-            error_embed = discord.Embed(
-                title="`⚠️` Error",
-                description=f"Es ist ein Fehler aufgetreten.",
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
-            )
-            error_embed.add_field(name=f"Beim Kicken von {member.mention} ist ein Fehler aufgetreten.",
-                                  value=f"Bitte versuche es später erneut.", inline=False)
-            error_embed.add_field(name=f"Fehler Code:", value=f"```{e}```", inline=False)
-            error_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.bot.user.avatar.url)
-            error_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                                   icon_url=ctx.bot.user.avatar.url)
-
-            print(e)
-            await ctx.respond(embed=error_embed, ephemeral=True)
-            return
-        await ctx.respond(embed=ban_embed, ephemeral=False)
-
-    @ban_group.command(description="Entbanne einen User aus dem Server")
-    @discord.default_permissions(ban_members=True)
-    @discord.guild_only()
-    async def unban(
-            self,
-            ctx,
-            member: Option(discord.Member, "Wähle den User aus, den du entbannen willst", required=True),
-            reason: Option(str, "Gib einen Grund an, warum du den User entbannen willst", required=False,
-                           default="Kein Grund angegeben")
-    ):
-
-        unban_embed = discord.Embed(
-            title=f"`✅` Unban {member.name}#{member.discriminator}",
-            description=f"Du hast den User {member.mention} auf dem Server **{ctx.guild.name}** entbannt.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        unban_embed.add_field(name="Moderator:", value=f"{ctx.author}", inline=False)
-        unban_embed.add_field(name="Grund:", value=f"{reason}", inline=False)
-        unban_embed.set_author(name=f"{ctx.guild.name}", icon_url=member.avatar.url)
-        unban_embed.set_thumbnail(url=member.avatar.url)
-        unban_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                               icon_url=ctx.bot.user.avatar.url)
-
-        try:
-            ban_entry = await ctx.guild.fetch_ban(member)
-            await ctx.guild.unban(ban_entry.user, reason=reason)
-        except (discord.Forbidden, discord.HTTPException) as e:
-
-            error_embed = discord.Embed(
-                title="`⚠️` Error",
-                description=f"Es ist ein Fehler aufgetreten.",
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
-            )
-            error_embed.add_field(name=f"Beim Kicken von {member.mention} ist ein Fehler aufgetreten.",
-                                  value=f"Bitte versuche es später erneut.", inline=False)
-            error_embed.add_field(name=f"Fehler Code:", value=f"```{e}```", inline=False)
-            error_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.bot.user.avatar.url)
-            error_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                                   icon_url=ctx.bot.user.avatar.url)
-
-            print(e)
-            await ctx.respond(embed=error_embed, ephemeral=True)
-            return
-        await ctx.respond(embed=unban_embed, ephemeral=False)
-
-    @warn_group.command(description="Warne einen User aus dem Server")
-    @discord.default_permissions(kick_members=True)
-    @discord.guild_only()
-    async def warn(
-            self,
-            ctx,
-            member: Option(discord.Member, "Wähle den User aus, den du warnen willst", required=True),
-            reason: Option(str, "Gib einen Grund an, warum du den User warnen willst", required=False,
-                           default="Kein Grund angegeben")
-    ):
-
-        warn_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        async with aiosqlite.connect("mod_sys.db") as db:
-            await db.execute(
-                "INSERT INTO WarnList (user_id, guild_id, warns, warn_reason, mod_id, warn_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (member.id, ctx.guild.id, 1, reason, ctx.author.id, warn_time),
-            )
-            await db.commit()
-
-            async with db.execute(
-                    "SELECT warn_id FROM WarnList WHERE user_id = ? AND guild_id = ? ORDER BY warn_id DESC LIMIT 1",
-                    (member.id, ctx.guild.id),
-            ) as cursor:
-                row = await cursor.fetchone()
-                warn_id = row[0]
-
-        warnUser_embed = discord.Embed(
-            title="`⚠️` Warn",
-            description=f"Du wurdest auf dem Server **{ctx.guild.name}** gewarnt.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        warnUser_embed.add_field(name="Moderator:", value=f"```{ctx.author}```", inline=False)
-        warnUser_embed.add_field(name="Warn ID:", value=f"```{warn_id}```", inline=False)
-        warnUser_embed.add_field(name="Grund:", value=f"```{reason}```", inline=False)
-        warnUser_embed.set_author(name=f"{ctx.guild.name}", icon_url=member.avatar.url)
-        warnUser_embed.set_thumbnail(url=member.avatar.url)
-        warnUser_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                                  icon_url=ctx.bot.user.avatar.url)
-
-        warn_embed = discord.Embed(
-            title="`✅` Warn",
-            description=f"Du hast den User {member.mention} auf dem Server **{ctx.guild.name}** gewarnt.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        warn_embed.add_field(name="Moderator:", value=f"```{ctx.author}```", inline=False)
-        warn_embed.add_field(name="Warn ID:", value=f"```{warn_id}```", inline=False)
-        warn_embed.add_field(name="Grund:", value=f"```{reason}```", inline=False)
-        warn_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.user.avatar.url)
-        warn_embed.set_thumbnail(url=member.avatar.url)
-        warn_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                              icon_url=ctx.bot.user.avatar.url)
-
-        await member.send(embed=warnUser_embed)
-        await ctx.respond(embed=warn_embed, ephemeral=False)
-
-    @warn_group.command(description="Unwarn einen User aus dem Server")
-    @discord.default_permissions(kick_members=True)
-    @discord.guild_only()
-    async def unwarn(
-            self,
-            ctx,
-            member: Option(discord.Member, "Wähle den User aus, den du unwarnen willst", required=True),
-            warn_id: Option(int, "Wähle die Warn ID aus, die du zurückziehen willst", required=True),
-            reason: Option(str, "Gib einen Grund an, warum du den User warnen willst", required=False,
-                           default="Kein Grund angegeben")
-    ):
-
-        unwarnUser_embed = discord.Embed(
-            title="`🍀` Unwarn",
-            description=f"Ein Warn von dir vom Server **{ctx.guild.name}** wurde zurückgezogen.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        unwarnUser_embed.add_field(name="Moderator:", value=f"```{ctx.author}```", inline=False)
-        unwarnUser_embed.add_field(name="Warn ID:", value=f"```{warn_id}```", inline=False)
-        unwarnUser_embed.add_field(name="Grund:", value=f"```{reason}```", inline=False)
-        unwarnUser_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.bot.user.avatar.url)
-        unwarnUser_embed.set_thumbnail(url=ctx.guild.icon.url)
-        unwarnUser_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator} | Oppro.net Development",
-                                    icon_url=ctx.bot.user.avatar.url)
-
-        unwarn_embed = discord.Embed(
-            title=f"`✅` Unwarn",
-            description=f"Du hast den {member.mention} aus dem Server **{ctx.guild.name}** unwarned.",
-            color=discord.Color.green(),
-            timestamp=datetime.datetime.utcnow()
-        )
-        unwarn_embed.add_field(name="Moderator:", value=f"```{ctx.author}```", inline=False)
-        unwarn_embed.add_field(name="Warn ID:", value=f"```{warn_id}```", inline=False)
-        unwarn_embed.add_field(name="Grund:", value=f"```{reason}```", inline=False)
-        unwarn_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.bot.user.avatar.url)
-        unwarn_embed.set_thumbnail(url=member.avatar.url)
-        unwarn_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator}  | Oppro.net Development",
-                                icon_url=ctx.bot.user.avatar.url)
-
-        async with aiosqlite.connect("mod_sys.db") as db:
-            await db.execute(
-                "DELETE FROM WarnList WHERE user_id = ? AND guild_id = ? AND warn_id = ?",
-                (member.id, ctx.guild.id, warn_id)
-            )
-            await db.commit()
-
-        await member.send(embed=unwarnUser_embed)
-        await ctx.respond(embed=unwarn_embed, ephemeral=False)
-
-    @warn_group.command(description="Zeige alle Warns eines Users aus dem Server an")
-    @discord.default_permissions(kick_members=True)
-    @discord.guild_only()
-    async def warnings(self, ctx, member: discord.Member):
-
-        warns_info = []
-        async with aiosqlite.connect("mod_sys.db") as db:
-            async with db.execute(
-                    "SELECT warn_id, mod_id, guild_id, user_id, warns, warn_reason, warn_time FROM WarnList WHERE user_id = ? AND guild_id = ?",
-                    (member.id, ctx.guild.id)) as cursor:
-                rows = await cursor.fetchall()
-                for row in rows:
-                    warn_id, mod_id, guild_id, user_id, warns, warn_reason, warn_time = row
-                    warn_time = datetime.datetime.strptime(warn_time, '%Y-%m-%d %H:%M:%S')
-                    warns_info.append(
-                        f"**Warn-ID:** __{warn_id}__ | **Warn ausgestellt am:** {warn_time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-                    warns_info.append(f"**Moderator:** <@{mod_id}> | **Mod-ID**: __{mod_id}__\n")
-                    warns_info.append(f"**> Grund:**\n```{warn_reason}```")
-                    warns_info.append("\n")
-
-        if not warns_info:
-            warnings_embed = discord.Embed(
-                title="`⚠️` The user has no warns!",
-                description=f"User: {member.mention}",
-                color=discord.Color.red(),
-            )
+                await user.send(embed=dm_embed)
+            except discord.Forbidden:
+                await ctx.respond(f"Ich kann {user.name} keine DM senden.")
         else:
-            warnings_embed = discord.Embed(
-                title=f"`⚠️` Warn Liste {member.name}#{member.discriminator}",
-                description=f"__**Liste der Warns**__",
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
+            await ctx.respond("Dieser Benutzer hat keine Warnung an dieser Position.")
+
+    # Clear Befehl
+    @moderation.command(description="Löscht eine bestimmte Anzahl von Nachrichten.")
+    @discord.default_permissions(manage_messages=True)
+    async def clear(self, ctx, amount: int):
+        """Löscht eine angegebene Anzahl von Nachrichten."""
+        deleted = await ctx.channel.purge(limit=amount)
+
+        embed = discord.Embed(
+            title="🧹 Nachrichten gelöscht",
+            description=f"Es wurden {len(deleted)} Nachrichten gelöscht.",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Mute Befehl
+    @moderation.command(description="Muted einen Benutzer.")
+    @discord.default_permissions(manage_messages=True)
+    async def mute(self, ctx, user: discord.Member, reason: str = "Kein Grund angegeben"):
+        """Muted einen Benutzer."""
+        if not ctx.author.guild_permissions.manage_messages:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        await user.edit(mute=True, reason=reason)
+
+        embed = discord.Embed(
+            title="🔇 Benutzer gemuted",
+            description=f"{user.mention} wurde gemuted. Grund: {reason}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+        try:
+            dm_embed = discord.Embed(
+                title="🔇 Du wurdest gemuted",
+                description=f"Du wurdest von {ctx.author.mention} gemuted. Grund: {reason}",
+                color=discord.Color.red()
             )
-        warnings_embed.add_field(name="", value="".join(warns_info), inline=False)
-        warnings_embed.set_author(name=f"{ctx.guild.name}", icon_url=ctx.guild.icon.url)
-        warnings_embed.set_thumbnail(url=member.avatar.url)
-        warnings_embed.set_footer(text=f"{ctx.bot.user.name}#{ctx.bot.user.discriminator}  | Oppro.net Development",
-                                  icon_url=ctx.bot.user.avatar.url)
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
 
-        await ctx.respond(embed=warnings_embed, ephemeral=False)
+    # Unmute Befehl
+    @moderation.command(description="Entmuted einen Benutzer.")
+    @discord.default_permissions(manage_messages=True)
+    async def unmute(self, ctx, user: discord.Member):
+        """Entmuted einen Benutzer."""
+        if not ctx.author.guild_permissions.manage_messages:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
-    @admin.command(description="Lösche Nachrichten aus dem Channel")
-    @commands.has_permissions(administrator=True)
-    async def purge(self, ctx, amount: Option(int, "Anzahl an Nachrichten (min. 1 | max. 100)", required=True)):
-        amount = amount + 1
+        await user.edit(mute=False)
 
-        if amount > 101:
+        embed = discord.Embed(
+            title="🔊 Benutzer entmuted",
+            description=f"{user.mention} wurde entmuted.",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
 
-            error_embed = discord.Embed(
-                title="`❌` Fehler!",
-                description="`Ich kann nicht mehr als 100 Nachrichten Löschen!`",
-                color=discord.Color.red(),
-                timestamp=datetime.datetime.utcnow()
+        try:
+            dm_embed = discord.Embed(
+                title="🔊 Du wurdest entmuted",
+                description=f"Du wurdest von {ctx.author.mention} entmuted.",
+                color=discord.Color.green()
             )
-            error_embed.set_thumbnail(url=ctx.guild.icon.url)
-            error_embed.set_footer(text=f"| {ctx.bot.user.name}#{ctx.bot.user.discriminator}",
-                                   icon_url=ctx.bot.user.avatar.url)
-            error_embed.set_author(name=f"Purge | Moderation System | Oppro.net Development", icon_url=ctx.bot.user.avatar.url)
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
 
-            await ctx.respond(embed=error_embed, delete_after=6, ephemeral=True)
+    # Unban Befehl
+    @moderation.command(description="Entbannt einen Benutzer.")
+    @discord.default_permissions(ban_members=True)
+    async def unban(self, ctx, user: discord.User, reason: str = "Kein Grund angegeben"):
+        """Entbannt einen Benutzer."""
+        if not ctx.author.guild_permissions.ban_members:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
-        else:
-            deleted = await ctx.channel.purge(limit=amount)
+        await ctx.guild.unban(user, reason=reason)
 
-            success_embed = discord.Embed(
-                title="`✅` Erfolgreich!",
-                description="**{}** `Nachrichten gelöscht!`".format(len(deleted)),
-                color=discord.Color.green(),
-                timestamp=datetime.datetime.utcnow()
+        embed = discord.Embed(
+            title="🔓 Benutzer entbannt",
+            description=f"{user.mention} wurde entbannt. Grund: {reason}",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+        try:
+            dm_embed = discord.Embed(
+                title="🔓 Du wurdest entbannt",
+                description=f"Du wurdest von {ctx.author.mention} entbannt. Grund: {reason}",
+                color=discord.Color.green()
             )
-            success_embed.set_thumbnail(url=ctx.guild.icon.url)
-            success_embed.set_footer(text=f"| {ctx.bot.user.name}#{ctx.bot.user.discriminator}",
-                                     icon_url=ctx.bot.user.avatar.url)
-            success_embed.set_author(name=f"Purge | Moderation System | Oppro.net Development", icon_url=ctx.bot.user.avatar.url)
+            await user.send(embed=dm_embed)
+        except discord.Forbidden:
+            await ctx.respond(f"Ich kann {user.name} keine DM senden.")
 
-            await ctx.respond(embed=success_embed, delete_after=3, ephemeral=True)
+    # Lock Befehl
+    @moderation.command(description="Sperrt einen Kanal.")
+    @discord.default_permissions(manage_channels=True)
+    async def lock(self, ctx, channel: discord.TextChannel):
+        """Sperrt einen Kanal."""
+        if not ctx.author.guild_permissions.manage_channels:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
+        await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+
+        embed = discord.Embed(
+            title="🔒 Kanal gesperrt",
+            description=f"{channel.mention} wurde gesperrt.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Unlock Befehl
+    @moderation.command(description="Entsperrt einen Kanal.")
+    @discord.default_permissions(manage_channels=True)
+    async def unlock(self, ctx, channel: discord.TextChannel):
+        """Entsperrt einen Kanal."""
+        if not ctx.author.guild_permissions.manage_channels:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        await channel.set_permissions(ctx.guild.default_role, send_messages=True)
+
+        embed = discord.Embed(
+            title="🔓 Kanal entsperrt",
+            description=f"{channel.mention} wurde entsperrt.",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Lockdown Befehl
+    @moderation.command(description="Sperrt alle Kanäle.")
+    @discord.default_permissions(manage_channels=True)
+    async def lockdown(self, ctx):
+        """Sperrt alle Kanäle."""
+        if not ctx.author.guild_permissions.manage_channels:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        for channel in ctx.guild.text_channels:
+            await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+
+        embed = discord.Embed(
+            title="🔒 Lockdown",
+            description="Alle Kanäle wurden gesperrt.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Unlockdown Befehl
+    @moderation.command(description="Entsperrt alle Kanäle.")
+    @discord.default_permissions(manage_channels=True)
+    async def unlockdown(self, ctx):
+        """Entsperrt alle Kanäle."""
+        if not ctx.author.guild_permissions.manage_channels:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        for channel in ctx.guild.text_channels:
+            await channel.set_permissions(ctx.guild.default_role, send_messages=True)
+
+        embed = discord.Embed(
+            title="🔓 Unlockdown",
+            description="Alle Kanäle wurden entsperrt.",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    # Slowmode
+    @moderation.command(description="Setzt den Slowmode für einen Kanal.")
+    @discord.default_permissions(manage_channels=True)
+    async def slowmode(self, ctx, channel: discord.TextChannel, seconds: int):
+        """Setzt den Slowmode für einen Kanal."""
+        if not ctx.author.guild_permissions.manage_channels:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        await channel.edit(slowmode_delay=seconds)
+
+        embed = discord.Embed(
+            title="🕐 Slowmode gesetzt",
+            description=f"Der Slowmode für {channel.mention} wurde auf {seconds} Sekunden gesetzt.",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
 
 def setup(bot):
-    bot.add_cog(ModerationSystem(bot))
+    bot.add_cog(AdminSystem(bot))
