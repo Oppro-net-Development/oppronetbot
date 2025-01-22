@@ -50,15 +50,20 @@ class ReportSystem(ezcord.Cog):
             await ctx.send("Es wurde noch kein Report-Channel gesetzt.")
 
     @slash_command(name="report", description="Melde einen Vorfall in einem Report-Channel")
-    async def report(self, ctx, reason: str):
+    async def report(self, ctx, reason: Option(str), user: Option(discord.Member)):
         guild_id = str(ctx.guild.id)
 
         # Überprüfen, ob der Report-Channel existiert
         if guild_id in self.report_channels and "channel" in self.report_channels[guild_id]:
             channel_id = self.report_channels[guild_id]["channel"]
             channel = self.bot.get_channel(channel_id)
-            await channel.send(f"**Neuer Report**\n\nUser: {ctx.author.mention}\nGrund: {reason}")
-            await ctx.send("Dein Report wurde erfolgreich eingereicht.")
+
+            # Sicherstellen, dass der Kanal existiert
+            if channel:
+                await channel.send(f"**Neuer Report**\n\nUser: {user}\nGrund: {reason}")
+                await ctx.send("Dein Report wurde erfolgreich eingereicht.")
+            else:
+                await ctx.send("Der Report-Channel konnte nicht gefunden werden.")
         else:
             await ctx.send("Es wurde kein Report-Channel gesetzt. Bitte setze einen mit `/report_channel`.")
 
