@@ -1,3 +1,6 @@
+![Repo Size](https://img.shields.io/github/repo-size/Oppro-net-Development/oppronetbot)
+![Discord](https://img.shields.io/discord/1097205376740499466)
+
 <h1 align="center">
     Version V1 Preview!<br>
 </h1>
