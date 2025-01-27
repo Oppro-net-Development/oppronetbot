@@ -9,6 +9,7 @@
     Owner und developer ist <a href="https://github.com/Medicopter117">Medicopter 117</a>
     <br>
 </h4>
+![Willkommen](images/blauwillkommen.png)
 
 ## 👋 Über mich
 
