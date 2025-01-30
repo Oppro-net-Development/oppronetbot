@@ -40,6 +40,47 @@ class AdminSystem(commands.Cog):
         with open(self.warns_file, "w") as f:
             json.dump(data, f, indent=4)
 
+    @moderation.command(description="füge eine Rolle zu mehren Mitgliedern hinzu")
+    @discord.default_permissions(manage_roles=True)
+    async def massrole(
+            self,
+            ctx,
+            role: discord.Role,
+            members: discord.Member
+    ):
+        if not ctx.author.guild_permissions.manage_roles:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        for member in members:
+            await member.add_roles(role)
+
+        embed = discord.Embed(
+            title="🔧 Rolle hinzugefügt",
+            description=f"Die Rolle {role.mention} wurde zu den Mitgliedern hinzugefügt.",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+    @moderation.command(description="Entferne eine Rolle von mehren Mitgliedern")
+    @discord.default_permissions(manage_roles=True)
+    async def removerolemass(self, ctx, role: discord.role, member: discord.Member):
+        if not ctx.author.guild_permissions.manage_roles:
+            return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
+
+        for member in member:
+            await member.remove_roles(role)
+
+        embed = discord.Embed(
+            title="🔧 Rolle entfernt",
+            description=f"Die Rolle {role.mention} wurde von den Mitgliedern entfernt.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
+        await ctx.respond(embed=embed)
+
+
+
     # Ban Befehl
     @moderation.command(description="Bannt einen Benutzer.")
     @discord.default_permissions(ban_members=True)
@@ -286,11 +327,9 @@ class AdminSystem(commands.Cog):
         except discord.Forbidden:
             await ctx.respond(f"Ich kann {user.name} keine DM senden.")
 
-    # Lock Befehl
     @moderation.command(description="Sperrt einen Kanal.")
     @discord.default_permissions(manage_channels=True)
     async def lock(self, ctx, channel: discord.TextChannel):
-        """Sperrt einen Kanal."""
         if not ctx.author.guild_permissions.manage_channels:
             return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
@@ -304,11 +343,9 @@ class AdminSystem(commands.Cog):
         embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
         await ctx.respond(embed=embed)
 
-    # Unlock Befehl
     @moderation.command(description="Entsperrt einen Kanal.")
     @discord.default_permissions(manage_channels=True)
     async def unlock(self, ctx, channel: discord.TextChannel):
-        """Entsperrt einen Kanal."""
         if not ctx.author.guild_permissions.manage_channels:
             return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
@@ -322,11 +359,9 @@ class AdminSystem(commands.Cog):
         embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
         await ctx.respond(embed=embed)
 
-    # Lockdown Befehl
     @moderation.command(description="Sperrt alle Kanäle.")
     @discord.default_permissions(manage_channels=True)
     async def lockdown(self, ctx):
-        """Sperrt alle Kanäle."""
         if not ctx.author.guild_permissions.manage_channels:
             return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
@@ -341,11 +376,10 @@ class AdminSystem(commands.Cog):
         embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
         await ctx.respond(embed=embed)
 
-    # Unlockdown Befehl
+
     @moderation.command(description="Entsperrt alle Kanäle.")
     @discord.default_permissions(manage_channels=True)
     async def unlockdown(self, ctx):
-        """Entsperrt alle Kanäle."""
         if not ctx.author.guild_permissions.manage_channels:
             return await ctx.respond("Du hast keine Berechtigung, diesen Befehl auszuführen.", ephemeral=True)
 
@@ -359,8 +393,6 @@ class AdminSystem(commands.Cog):
         )
         embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
         await ctx.respond(embed=embed)
-
-    # Slowmode
     @moderation.command(description="Setzt den Slowmode für einen Kanal.")
     @discord.default_permissions(manage_channels=True)
     async def slowmode(self, ctx, channel: discord.TextChannel, seconds: int):
@@ -377,6 +409,7 @@ class AdminSystem(commands.Cog):
         )
         embed.set_footer(text="Projekt des OPPRO.NET Development | Admin System | Powered by Discord")
         await ctx.respond(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(AdminSystem(bot))
