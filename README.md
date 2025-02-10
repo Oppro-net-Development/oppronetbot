@@ -1,31 +1,8 @@
-![Repo Size](https://img.shields.io/github/repo-size/Oppro-net-Development/oppronetbot)
-![Discord](https://img.shields.io/discord/1097205376740499466)
+<img draggable="false" src="https://github.com/Oppro-net-Development/oppronetbot/blob/main/managerbot.png"></a>
 
-<h1 align="center">
-    Version V1 Preview!<br>
-</h1>
+# V1 Preview
+- Levelsystem
+- Moderation
 
-<h4 align="center">
-    Owner und developer ist <a href="https://github.com/Medicopter117">Medicopter 117</a>
-    <br>
-</h4>
-
-## 👋 Über mich
-
-Dieser Bot wurde erstellt für Server Inhaber.
-
-## ⌨ Funktionen
-
-  - Levelsystem
-    - Globales Levelsystem
-    - Global und Server leaderboard
-  - Moderation
-    - ban, kick, mute, unmute, lockdown, unlockdwon, unban
-    - report
-- Bewertung
-    - Bewertungen für unsere Bots
-    - Custom Bewertungen für Server
-- Bot
-    - Infomationen über bot
-- Serverinfos
-    - serber infos
+# Coding by
+[![Static Badge](https://img.shields.io/badge/Medicopter-117?style=for-the-badge&label=Coding%20by%3A&link=https%3A%2F%2Fgithub.com%2FMedicopter117)](https://github.com/Medicopter117)
