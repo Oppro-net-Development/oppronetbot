@@ -5,6 +5,13 @@
 <img alt="Next Version" src="https://img.shields.io/badge/V1.1_Preview-green?style=for-the-badge&label=Next%20Version">
 </div>
 
+# WICHTIGE MITTTEILUNGEN
+ManagerBot wird eingestellt.
+Grund dafür:
+Mir ist code zu unüberlicher gewurden (meine schuld)
+Manche Teile des Bots gehen nicht für Public Server.
+
+Wir werden einen neuen besseren bauen und ihm immer verbessert.
 
 # V1 Preview
 - Levelsystem
